@@ -22,11 +22,13 @@ def best_match(query_embedding):
         # reshape pii embedding
         pii_embedding = np.array(pii_embedding).reshape(1 ,-1)
 
-
-        similarity_score =cosine_similarity(pii_embedding
+        # calculate similarity score
+        similarity_score_array =cosine_similarity(pii_embedding
                                              ,query_embedding)
+        # extract similarity score from the array
+        similarity_score = similarity_score_array[0][0]
         # append tuple containing the original text, label and similarity score to the list
-        scores.append((embeddings.iloc[i ,0] ,embeddings.iloc[i ,1] ,similarity_score))
+        scores.append((embeddings.iloc[i ,1] ,embeddings.iloc[i ,2] ,similarity_score))
 
     # sort list
     sorted_scores = sorted(scores, key=lambda x: x[2], reverse=True)
