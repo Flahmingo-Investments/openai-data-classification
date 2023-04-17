@@ -1,11 +1,16 @@
 import openai
 import os
 import pandas as pd
+import logging
+from training_data import data
+from openai.error import OpenAIError
 
 # Fetch API key from env variable
 openai.api_key = os.environ["OPENAI_API_KEY"]
 
 # Load file path environment variable
+# Note: path should be in the format directory_path + filename.csv
+# Sample path : "../embeddings.csv"
 embeddings_file_path = os.environ(PATH_TO_EMBEDDINGS)
 
 # embedding model parameters
@@ -15,13 +20,13 @@ try:
     # load embeddings
     embeddings = pd.read_csv(embeddings_file_path)
 except FileNotFoundError:
-    logger.warning("Embeddings file not found. Attempting to generate embeddings ...")
+    logging.warning("Embeddings file not found. Attempting to generate embeddings ...")
 
-def empty_dataframe():
+def conver_to_dataframe():
     '''
-    Return an empty dataframe with the given columns
+    Returns training data as dataframe empty dataframe with columns pii and label
     '''
-    columns = ["pii","Label"]
+    columns = ["pii","label"]
     dataframe = pd.DataFrame(data,columns=columns)
 
     return dataframe
@@ -33,18 +38,14 @@ def generate_embeddings():
     '''
 
     # convert training data into a dataframe
-    training_dataframe = empty_dataframe()
+    training_dataframe = conver_to_dataframe(data = data)
 
     logging.info("Generating embeddings for training data ...")
-
-
-
-    # apply embeddings transformation to the PII
     training_dataframe["embeddings"]= training_dataframe.pii.apply(lambda x : get_embedding(x,embedding_model))
 
-    logging.info("Saving file in current directory ...")
     # save embeddings in a csv so that they can be re-used
-    training_dataframe.to_csv("pii_embeddings.csv")
+    logging.info("Saving file in current directory ...")
+    training_dataframe.to_csv(embeddings_file_path+"/"+"pii_embeddings.csv")
 
     return True
 
@@ -56,13 +57,21 @@ def best_match(query_embedding):
     # reshape query embedding
     query_embedding = np.array(query_embedding).reshape(1 ,-1)
 
-    for i in enumerate(embeddings["embedding"]):
+    try:
+        for i in enumerate(embeddings["embedding"]):
 
-        # loop through embeddings to calculate similarity scores
-        scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
-                   cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
-                  for
-                  i, _ in enumerate(embeddings["embedding"])]
+            # loop through embeddings to calculate similarity scores
+            # store scores as tuples in the list in the form -> (pii, label,score)
+            scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
+                       cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
+                      for
+                      i, _ in enumerate(embeddings["embedding"])]
+        logger.info("Converted pii to embeddings successfully ")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return []
+
 
     # sort list
     sorted_scores = sorted(scores, key=lambda x: x[2], reverse=True)
