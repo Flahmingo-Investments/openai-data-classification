@@ -41,7 +41,7 @@ def generate_embeddings():
     training_dataframe = conver_to_dataframe(data = data)
 
     logging.info("Generating embeddings for training data ...")
-    training_dataframe["embeddings"]= training_dataframe.pii.apply(lambda x : get_embedding(x,embedding_model))
+    training_dataframe["embeddings"]= get_embedding(training_dataframe["embeddings"],embedding_model)
 
     # save embeddings in a csv so that they can be re-used
     logging.info("Saving file in current directory ...")
