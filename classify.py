@@ -33,14 +33,11 @@ def generate_embeddings():
     '''
 
     # convert training data into a dataframe
-    training_dataframe = pd.DataFrame(data,columns=["pii","Label"])
+    training_dataframe = empty_dataframe()
 
     logging.info("Generating embeddings for training data ...")
 
-    # loop through embeddings and calculate similarity scores
-    scores = [(embeddings["text"].values[i], embeddings["embedding"].values[i],
-               cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding)[0][0]) for
-              i, _ in enumerate(embeddings["embedding"])]
+
 
     # apply embeddings transformation to the PII
     training_dataframe["embeddings"]= training_dataframe.pii.apply(lambda x : get_embedding(x,embedding_model))
@@ -59,19 +56,13 @@ def best_match(query_embedding):
     # reshape query embedding
     query_embedding = np.array(query_embedding).reshape(1 ,-1)
 
-    for i in range(len(embeddings["embedding"])):
-        # get pre-computed pii embedding
-        pii_embedding = embeddings.iloc[i ,2]
+    for i in enumerate(embeddings["embedding"]):
 
-        # reshape pii embedding
-        pii_embedding = np.array(pii_embedding).reshape(1 ,-1)
-
-        # calculate similarity score
-        similarity_score_array =cosine_similarity(pii_embedding,query_embedding)
-        # extract similarity score from the array
-        similarity_score = similarity_score_array[0][0]
-        # append tuple containing the original text, label and similarity score to the list
-        scores.append((embeddings.iloc[i ,1] ,embeddings.iloc[i ,2] ,similarity_score))
+        # loop through embeddings to calculate similarity scores
+        scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
+                   cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
+                  for
+                  i, _ in enumerate(embeddings["embedding"])]
 
     # sort list
     sorted_scores = sorted(scores, key=lambda x: x[2], reverse=True)
