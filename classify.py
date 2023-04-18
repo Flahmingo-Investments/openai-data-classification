@@ -1,5 +1,6 @@
 import openai
 import os
+import numpy as np
 import pandas as pd
 import logging
 from training_data import data
@@ -64,14 +65,13 @@ def best_match(query_embedding):
     query_embedding = np.array(query_embedding).reshape(1 ,-1)
 
     try:
-        for i in enumerate(embeddings["embedding"]):
 
-            # loop through embeddings to calculate similarity scores
-            # store scores as tuples in the list in the form -> (pii, label,score)
-            scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
-                       cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
-                      for
-                      i, _ in enumerate(embeddings["embedding"])]
+        # loop through embeddings to calculate similarity scores
+        # store scores as tuples in the list in the form -> (pii, label,score)
+        scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
+                   cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
+                  for
+                  i, _ in enumerate(embeddings["embedding"])]
         logging.info("Converted pii to embeddings successfully ")
 
     except Exception as e:
