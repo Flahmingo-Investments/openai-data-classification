@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import logging
 from training_data import data
+from openai.embeddings_utils import get_embedding
 from openai.error import OpenAIError
 
 # Fetch API key from env variable
@@ -40,8 +41,13 @@ def generate_embeddings():
     # convert training data into a dataframe
     training_dataframe = conver_to_dataframe(data = data)
 
+
     logging.info("Generating embeddings for training data ...")
-    training_dataframe["embeddings"]= get_embedding(training_dataframe["embeddings"],embedding_model)
+    try:
+        training_dataframe["embeddings"]= get_embedding(training_dataframe["embeddings"],embedding_model)
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return False
 
     # save embeddings in a csv so that they can be re-used
     logging.info("Saving file in current directory ...")
@@ -66,7 +72,7 @@ def best_match(query_embedding):
                        cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
                       for
                       i, _ in enumerate(embeddings["embedding"])]
-        logger.info("Converted pii to embeddings successfully ")
+        logging.info("Converted pii to embeddings successfully ")
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
