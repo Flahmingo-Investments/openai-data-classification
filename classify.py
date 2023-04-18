@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import logging
+import os
 from training_data import data
 from openai.embeddings_utils import get_embedding
 from openai.error import OpenAIError
@@ -20,7 +21,8 @@ embedding_model = "text-embedding-ada-002"
 
 try:
     # load embeddings
-    embeddings = pd.read_csv(embeddings_file_path)
+    embeddings_file = pd.read_csv(embeddings_file_path)
+    embeddings_file["embedding"] = embeddings_file.embedding.apply(lambda x: json.loads(x))
 except FileNotFoundError:
     logging.warning("Embeddings file not found. Attempting to generate embeddings ...")
 
