@@ -3,10 +3,10 @@ import os
 import numpy as np
 import pandas as pd
 import logging
-import os
+import json
 from training_data import data
 from openai.embeddings_utils import get_embedding
-from openai.error import OpenAIError
+
 
 # Fetch API key from env variable
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -21,8 +21,8 @@ embedding_model = "text-embedding-ada-002"
 
 try:
     # load embeddings
-    embeddings_file = pd.read_csv(embeddings_file_path)
-    embeddings_file["embedding"] = embeddings_file.embedding.apply(lambda x: json.loads(x))
+    embeddings_dataframe = pd.read_csv(embeddings_file_path)
+    embeddings_dataframe["embedding"] = embeddings_dataframe.embedding.apply(lambda x: json.loads(x))
 except FileNotFoundError:
     logging.warning("Embeddings file not found. Attempting to generate embeddings ...")
 
@@ -70,10 +70,10 @@ def best_match(query_embedding):
 
         # loop through embeddings to calculate similarity scores
         # store scores as tuples in the list in the form -> (pii, label,score)
-        scores = [(embeddings["pii"].values[i], embeddings["label"].values[i],
-                   cosine_similarity(np.array(embeddings["embedding"].values[i]).reshape(1, -1), query_embedding))
+        scores = [(embeddings_dataframe["pii"].values[i], embeddings_dataframe["label"].values[i],
+                   cosine_similarity(np.array(embeddings_dataframe["embedding"].values[i]).reshape(1, -1), query_embedding))
                   for
-                  i, _ in enumerate(embeddings["embedding"])]
+                  i, _ in enumerate(embeddings_dataframe["embedding"])]
         logging.info("Converted pii to embeddings successfully ")
 
     except Exception as e:
@@ -86,6 +86,47 @@ def best_match(query_embedding):
 
     # return best match
     return sorted_scores[:1]
+
+
+def chat_completion(input_query):
+    '''
+    Returns classification of PII as detected by GPT
+    '''
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": '''You are Personal Identifiable Information Detector. You have to determine the level of the PII.
+
+            Level:
+            - Medium
+            - High
+            - Secret // Used for security keys and number such as tax number, sin, credit card details and expiry.
+        
+            RESPONSE FORMAT
+            ---
+            ```json
+            [{ "field": string // the field name
+            "value": string // the field value
+            "level": Level // the level should be one of (Medium, High, Secret)
+            }]'''},
+                    {"role": "user", "content": '''Return your response in the RESPONSE FORMAT:
+        
+            {input_query}: 
+        
+              '''.format(input_query=input_query)}
+                ]
+            )
+
+    # parse response
+    response = completion["choices"][0]["message"]["content"]
+    # Remove the backticks
+    response = response.replace('```json\n', '').replace('\n```', '')
+    predicted_class = json.loads(txt)[0]["level"]
+
+    return predicted_class
+
+
+
 
 
 # take in a query via command line
