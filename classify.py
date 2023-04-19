@@ -80,7 +80,9 @@ def best_match(query_embedding):
     sorted_scores = sorted(scores, key=lambda x: x[2], reverse=True)
 
     # return best match
-    return sorted_scores[:1]
+    best_match = sorted_scores[:1]
+    best_match_score = best_match[0][2]
+    return best_match_score
 
 
 def chat_completion(input_query):
@@ -157,18 +159,19 @@ def classify(query,embeddings_dataframe):
     :return: classification of pii level - high, medium, secret
     '''
 
+    if is_stored_pii(query):
+        return is_stored_pii(query)
 
+    elif not(is_stored_pii((query))):
+        # convert input to embedding
+        query_embedding = get_embedding(query, embedding_model)
+        similarity_score = best_match(query_embedding=query_embedding)
+        if similarity_score<0.7:
+            # user chatgpt
+            label = chat_completion(query)
+            return label
 
-    # convert input to embedding
-    query_embedding = get_embedding(query, embedding_model)
-
-    if
-
-
-    # Assumption - query is not present
-
-
-
+    return "Unable to process input"
 
 
 try:
@@ -183,15 +186,6 @@ except FileNotFoundError:
 
 # take in a query via command line
 query = input("Enter a query: ")
-
-
-
-predict = openai.Classification.create(
-    search_model="davinci",
-    model="davinci",
-    examples = training,
-    query = query,
-    labels = ["High", "Medium", "Secret", "None"],
-).label.lower()
-
+predict = classify(query=query,embeddings_dataframe=embeddings_dataframe)
 print("The classification is: " + predict)
+
