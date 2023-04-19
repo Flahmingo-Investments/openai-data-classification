@@ -14,7 +14,7 @@ openai.api_key = os.environ["OPENAI_API_KEY"]
 # Load file path environment variable
 # Note: path should be in the format directory_path + filename.csv
 # Sample path : "../embeddings.csv"
-embeddings_file_path = os.environ(PATH_TO_EMBEDDINGS)
+embeddings_file_path = os.environ["PATH_TO_EMBEDDINGS"]
 
 # embedding model parameters
 embedding_model = "text-embedding-ada-002"
@@ -66,7 +66,7 @@ def best_match(query_embedding):
 
         # loop through embeddings to calculate similarity scores
         # store scores as tuples in the list in the form -> (pii, label,score)
-        scores = [(embeddings_dataframe["pii"].values[i], embeddings_dataframe["label"].values[i],
+        scores = [(embeddings_dataframe["PII"].values[i], embeddings_dataframe["Label"].values[i],
                    openai.cosine_similarity(np.array(embeddings_dataframe["embedding"].values[i]).reshape(1, -1), query_embedding))
                   for
                   i, _ in enumerate(embeddings_dataframe["embedding"])]
@@ -82,7 +82,7 @@ def best_match(query_embedding):
     # return best match
     best_match = sorted_scores[:1]
     best_match_score = best_match[0][2]
-    return best_match_score
+    return float(best_match_score)
 
 
 def chat_completion(input_query):
@@ -166,6 +166,7 @@ def classify(query,embeddings_dataframe):
         # convert input to embedding
         query_embedding = get_embedding(query, embedding_model)
         similarity_score = best_match(query_embedding=query_embedding)
+        print(similarity_score)
         if similarity_score<0.7:
             # user chatgpt
             label = chat_completion(query)
